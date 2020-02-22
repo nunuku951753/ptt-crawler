@@ -1,4 +1,4 @@
-## ptt-crawler
+# ptt-crawler
 
 ### PTT 網頁爬蟲，使用環境 python3.7.3, SQLite
 
@@ -16,7 +16,7 @@
 4. 於container內執行程式  
 主程式： PTTMain.py  
 參數：  
-![GITHUB](https://imgur.com/idpgrQh.png "article")  
+![GITHUB](https://imgur.com/idpgrQh.png "article")
     * 建立DB：  
       
        `# python PTTMain.py --newDB `  
@@ -63,3 +63,9 @@ Table: board_class - 看板資訊
 
 Table: cache - 已擷取過的網址紀錄
 ![GITHUB](https://imgur.com/fzv5L7L.png "cache")  
+
+### ※ Notice
+  
+      1. 因推文未提供年度，將依照文章貼文年度往下推算
+      2. 若推文日期無提供時分秒，將預設 00:00
+      3. 若同篇文章內同人同時間推文，判斷為系統斷句，將合併推文
