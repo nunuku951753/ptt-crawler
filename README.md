@@ -2,8 +2,28 @@
 
 ### PTT 網頁爬蟲，使用環境 python3.7.3, SQLite
 
+### 資料表介紹
+Table: article - 文章相關資訊  
+![GITHUB](https://imgur.com/WFstI4B.png "article")  
+  
+Table: comment - 推文相關資訊  
+![GITHUB](https://imgur.com/JXRPKW8.png "comment")  
 
-#### 安裝步驟
+Table: board_class - 看板資訊  
+![GITHUB](https://imgur.com/JoMI9CH.png "board class")
+
+Table: caught - 已擷取過的網址紀錄
+![GITHUB](https://imgur.com/fzv5L7L.png "caught")  
+  
+* 資料擷取前檢查 article資料表是否已含有該文章之網址(canonicalUrl)，若已存在則跳過不重複抓取
+  
+* 假設機器因不可預期狀況停機,可藉由 caught資料表查詢未擷取成功之資料頁數，以利後續補抓缺漏
+  
+* 為避免快速擷取頁面而造成的網路資安問題，目前設計為看板每頁擷取後皆會間隔5秒再繼續擷取
+* 因暫無找到指定發佈日期的方法，目前替代方案為運用 caught資料表紀錄每頁第一筆文章之日期(publishedDate)，  
+  藉此查出大概日期區間所對應的頁數  
+
+### 安裝步驟
 1. clone or download the project  
 `git clone https://github.com/nunuku951753/ptt-crawler.git `
 
@@ -51,21 +71,8 @@
 請使用此執行檔開啟ptt.db  
 .\sqlitebrowser_200_b1_win\SQLite Database Browser 2.0 b1.exe
   
-#### 資料表介紹
-Table: article - 文章相關資訊  
-![GITHUB](https://imgur.com/WFstI4B.png "article")  
-  
-Table: comment - 推文相關資訊  
-![GITHUB](https://imgur.com/JXRPKW8.png "comment")  
-
-Table: board_class - 看板資訊  
-![GITHUB](https://imgur.com/JoMI9CH.png "board class")
-
-Table: cache - 已擷取過的網址紀錄
-![GITHUB](https://imgur.com/fzv5L7L.png "cache")  
 
 ### ※ Notice
-  
-      1. 因推文未提供年度，將依照文章貼文年度往下推算
+      1. 因推文未提供年度，將依照文章的年度往下推算
       2. 若推文日期無提供時分秒，將預設 00:00
-      3. 若同篇文章內同人同時間推文，判斷為系統斷句，將合併推文
+      3. 若同篇文章內同人同時間推文，判斷為自動斷句，將合併推文
