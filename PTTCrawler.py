@@ -17,6 +17,7 @@ class PTTCrawler():
         self.home_url = "https://www.ptt.cc"
         # 通過18禁警告
         self.header = {
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.116 Safari/537.36",
             "cookie":"over18=1"
         }
         
@@ -59,15 +60,15 @@ class PTTCrawler():
                 else:
                     data["title"] = value.replace("'", "''").strip()
             if tag=="時間":
-                publishedYear, publishedTime = self.getTime(value.strip(), "%a %b %d %H:%M:%S %Y")
-                data["publishedYear"] = publishedYear
-                data["publishedTime"] = publishedTime
-                data["publishedDate"] = value.strip()
+                data["publishedTime"] = self.getTime(value.strip(), "%a %b %d %H:%M:%S %Y", "time")
+                data["publishedDate"] = self.getTime(value.strip(), "%a %b %d %H:%M:%S %Y")
         return data
 
     # 擷取文章推文資訊，判斷斷句，將依同時間同推文者合併推文
-    def getCommentData(self, article_page, publishedYear):
+    def getCommentData(self, article_page, publishedDate):
         comment_dict={}
+        zyear = int(datetime.strftime(publishedDate, '%Y'))  # 貼文年度
+        zmonth = int(datetime.strftime(publishedDate, '%m')) # 貼文月份
 
         pushs = article_page.findAll("div", class_="push")
         for push in pushs:
@@ -84,9 +85,15 @@ class PTTCrawler():
                 time_str = ipdatetime[ipdatetime.index(":")-2 : ipdatetime.index(":")+3]
             else:
                 time_str = "00:00" # 無時間預設 00:00
-            commentTime_str = publishedYear+"/"+date_str+" "+time_str
-            commentYear, commentTime = self.getTime(commentTime_str, "%Y/%m/%d %H:%M")
-            comment_data["commentTime"] = commentTime
+            
+            # 因推文沒提供年度，需推算年度
+            mon = int(date_str.split("/")[0]) # 這則推文的月份
+            if zmonth > mon: # 若本文月份 > 推文月份，則年度加一
+                zyear += 1
+            zmonth = mon # 更新月份基準
+            
+            commentTime_str = str(zyear)+"/"+date_str+" "+time_str
+            comment_data["commentTime"] = self.getTime(commentTime_str, "%Y/%m/%d %H:%M", "time")
 
             key = comment_data["commentId"]+comment_data["commentTime"]
             if key in comment_dict.keys():
@@ -100,6 +107,9 @@ class PTTCrawler():
         if page=="last":
             url = "https://www.ptt.cc/bbs/{}/index.html".format(board)
             last_page = BeautifulSoup(requests.get(url, headers=self.header).text, 'html.parser')
+            if "Connection timed out" in str(last_page):
+                print("※ 目前網頁無法連線，請確認!")
+                return pageList
             group = last_page.find("div", class_="btn-group btn-group-paging")
             hrefs = group.findAll("a", class_="btn wide")
             for h in hrefs:
@@ -114,17 +124,17 @@ class PTTCrawler():
         return pageList
 
     # 日期轉timestamp
-    def getTime(self, zdate, date_format):
+    def getTime(self, zdate, date_format, ztype=""):
         try:
             time_format = datetime.strptime(zdate, date_format)
-            zyear = datetime.strftime(time_format, '%Y')
-            ztime = calendar.timegm(time_format.timetuple())
-            ztime = "{:0<13d}".format(ztime) # 不滿13位後面補0
+            if ztype=="time":
+                ztime = calendar.timegm(time_format.timetuple())
+                time_format = "{:0<13d}".format(ztime) # 不滿13位後面補0
         except:
-            zyear = ""
+            time_format = ""
             ztime = ""
             print("日期轉換錯誤：", zdate)
-        return zyear, ztime
+        return time_format
 
     def pageSleep(self, s):
         print("※ 避免資安問題，休息%d秒後繼續" % s)
@@ -183,7 +193,7 @@ class PTTCrawler():
                 print("看板頁面: ", link)
 
                 article_page = BeautifulSoup(requests.get(link, headers=self.header).text, 'html.parser')
-                if "Connection timed out" in article_page:
+                if "Connection timed out" in str(article_page):
                     print("※ 目前網頁無法連線，請確認!")
                     break
                 articles = article_page.findAll("div", class_="r-ent")
@@ -220,7 +230,7 @@ class PTTCrawler():
                         j += 1
 
         # ----------------------------------- comment info ---------------------------------------------
-                    comment_dict = self.getCommentData(article_page, article_dict["publishedYear"]) # 擷取文章推文資訊，將依同時間同推文者合併推文
+                    comment_dict = self.getCommentData(article_page, article_dict["publishedDate"]) # 擷取文章推文資訊，將依同時間同推文者合併推文
 
                     i=0
                     commentSQL2=""
@@ -244,8 +254,7 @@ class PTTCrawler():
 
         # ----------------------------------- caught info ---------------------------------------------
                 if first_date != "":
-                    time_format = datetime.strptime(first_date, '%a %b %d %H:%M:%S %Y')
-                    publishedDate = datetime.strftime(time_format, '%Y-%m-%d')
+                    publishedDate = datetime.strftime(first_date, '%Y-%m-%d')
                     caughtSQL2 = caughtSQL.format(board, page, publishedDate, link)
                     sql.insertData(self.sqlBase, caughtSQL2)
 
