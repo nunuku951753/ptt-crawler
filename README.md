@@ -1,6 +1,6 @@
 # ptt-crawler
 
-### PTT 網頁爬蟲，使用環境 python3.7.3, SQLite
+### PTT 網頁爬蟲，使用環境 Windows10, python3.7.3, SQLite
 
 ### 資料表介紹
 Table: article - 文章相關資訊  
@@ -19,9 +19,14 @@ Table: caught - 已擷取過的網址紀錄
   
 * 假設機器因不可預期狀況停機,可藉由 caught資料表查詢未擷取成功之資料頁數，以利後續補抓缺漏
   
-* 為避免快速擷取頁面而造成的網路資安問題，目前設計為看板每頁擷取後皆會間隔5秒再繼續擷取
+* 為避免快速擷取頁面而造成的網路資安問題，目前設計為看板每頁擷取後皆會間隔5秒再繼續擷取  
+  
 * 因暫無找到指定發佈日期的方法，目前替代方案為運用 caught資料表紀錄每頁第一筆文章之日期(publishedDate)，  
   藉此查出大概日期區間所對應的頁數  
+    
+* 因推文未提供年度，將依照文章的年度往下推算，若推文日期無提供時分秒，將預設 00:00
+  
+* 若同篇文章內同人同時間推文，判斷為自動斷句，將合併推文
 
 ### 安裝步驟
 1. clone or download the project  
@@ -72,7 +77,18 @@ Table: caught - 已擷取過的網址紀錄
 .\sqlitebrowser_200_b1_win\SQLite Database Browser 2.0 b1.exe
   
 
-### ※ Notice
-      1. 因推文未提供年度，將依照文章的年度往下推算
-      2. 若推文日期無提供時分秒，將預設 00:00
-      3. 若同篇文章內同人同時間推文，判斷為自動斷句，將合併推文
+### ※ Notice  
+![GITHUB](https://imgur.com/WN2acAW.png "error")
+
+    若建置image時碰到此錯誤訊息，請試試下述辦法(windows適用)
+      
+      1. 修改檔案： .docker\machine\machines\default\config.json
+        HostOptions > EngineOptions > Dns
+        "Dns": [
+                "192.168.99.100", (docker機器IP)
+                "8.8.8.8",
+                "8.8.4.4"
+         ]
+      2. 重啟docker： docker-machine restart
+      3. 再重新建置一次
+        
